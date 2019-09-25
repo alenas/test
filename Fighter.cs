@@ -27,29 +27,26 @@ namespace test {
 			Damage = damage;
 		}
 
-		/// <summary>
-		/// inflicts damage and returns if fighter is dead
-		/// </summary>
-		/// <param name="damage">Damage to inflict</param>
-		/// <returns>true if dead</returns>
-		public bool InflictDamage(int damage) {
-			Health -= damage;
-			if (IsDead) Log("is dead");
-			return IsDead;
-		}
-
 		public void StartShootingAt(ref ConcurrentDictionary<string, Fighter> fighters) {
 			Log("starts shooting");
 			this.fighters = fighters;
 			while (ShootRandom()) {
 				Thread.Sleep(SleepIntervalMs);
 			}
+			// remove cross reference so GC could collect
+			this.fighters = null;
 		}
 
-		void Log(string action) {
-			Console.WriteLine($"{Name}({Health}): {action}");
+		/// <summary>
+		/// inflicts damage and returns if fighter is dead
+		/// </summary>
+		/// <param name="damage">Damage to inflict</param>
+		/// <returns>true if dead</returns>
+		private bool InflictDamage(int damage) {
+			Health -= damage;
+			if (IsDead) Log("is dead");
+			return IsDead;
 		}
-
 
 		/// <summary>
 		/// Shoots random player
@@ -88,6 +85,10 @@ namespace test {
 			// when there are two fighters left, we could select the OTHER fighter, instead of random
 			var i = random.Next(fighters.Count);
 			return fighters.ElementAt(i).Value;
+		}
+
+		void Log(string action) {
+			Console.WriteLine($"{Name}({Health}): {action}");
 		}
 
 	}
