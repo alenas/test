@@ -85,6 +85,7 @@ namespace test {
 		}
 
 		Fighter GetRandom() {
+			// when there are two fighters left, we could select the OTHER fighter, instead of random
 			var i = random.Next(fighters.Count);
 			return fighters.ElementAt(i).Value;
 		}
