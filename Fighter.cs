@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 
-namespace test {
+namespace Battle {
 
 	public class Fighter {
 
@@ -13,28 +13,35 @@ namespace test {
 
 		public int Damage { get; }
 
+		public int ReloadTime { get; }
+
 		public bool IsDead { get { return Health <= 0; } }
 
 		private ConcurrentDictionary<string, Fighter> fighters;
 
-		public const int SleepIntervalMs = 500;
-
 		private static Random random = new Random((new Random()).Next(int.MaxValue));
+
+		public event Action<Fighter, string> FighterActions;
 
 		public Fighter(string name, int health, int damage) {
 			Name = name;
 			Health = health;
 			Damage = damage;
+			ReloadTime = 500;
 		}
 
-		public void StartShootingAt(ref ConcurrentDictionary<string, Fighter> fighters) {
-			Log("starts shooting");
+		public void StartShootingAt(ConcurrentDictionary<string, Fighter> fighters) {
+			FighterActions(this, "starts shooting");
 			this.fighters = fighters;
 			while (ShootRandom()) {
-				Thread.Sleep(SleepIntervalMs);
+				ReloadGun();
 			}
 			// remove cross reference so GC could collect
 			this.fighters = null;
+		}
+
+		private void ReloadGun() {
+			Thread.Sleep(ReloadTime);
 		}
 
 		/// <summary>
@@ -44,7 +51,7 @@ namespace test {
 		/// <returns>true if dead</returns>
 		private bool InflictDamage(int damage) {
 			Health -= damage;
-			if (IsDead) Log("is dead");
+			if (IsDead) FighterActions(this, "is dead");
 			return IsDead;
 		}
 
@@ -59,10 +66,8 @@ namespace test {
 			}
 			var fighter = GetSuitable();
 			if (fighter != null) {
-				Log($"shoots at {fighter.Name} {fighter.Health}-{Damage}");
-				if (fighter.InflictDamage(Damage)) {
-					fighters.TryRemove(fighter.Name, out _);
-				}
+				FighterActions(this, $"shoots at {fighter.Name} {fighter.Health}-{Damage}");
+				fighter.InflictDamage(Damage);
 				return true;
 			} else {
 				return false;
@@ -84,11 +89,7 @@ namespace test {
 		Fighter GetRandom() {
 			// when there are two fighters left, we could select the OTHER fighter, instead of random
 			var i = random.Next(fighters.Count);
-			return fighters.ElementAt(i).Value;
-		}
-
-		void Log(string action) {
-			Console.WriteLine($"{Name}({Health}): {action}");
+			return fighters.Values.ElementAt(i);
 		}
 
 	}
